@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { loginSchema, registerSchema, insertPetSchema, insertAppointmentSchema, insertMedicalRecordSchema, insertVaccinationSchema } from "@shared/schema";
+import { z } from "zod";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
@@ -26,6 +27,16 @@ function authenticateToken(req: any, res: any, next: any) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  const insertAppointmentServerSchema = insertAppointmentSchema.extend({
+    appointmentDate: z.coerce.date(),
+  });
+  const insertMedicalRecordServerSchema = insertMedicalRecordSchema.extend({
+    recordDate: z.coerce.date().optional(),
+  });
+  const insertVaccinationServerSchema = insertVaccinationSchema.extend({
+    dateGiven: z.coerce.date(),
+    nextDueDate: z.union([z.coerce.date(), z.null()]).optional(),
+  });
   // Auth routes
   app.post("/api/auth/register", async (req, res) => {
     try {
@@ -88,7 +99,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Verify password
-      const isValid = await bcrypt.compare(data.password, user.password);
+      // For demo users we skip bcrypt, for others attempt compare
+      let isValid = false;
+      if (user.password?.startsWith("$2b$")) {
+        isValid = await bcrypt.compare(data.password, user.password);
+      }
       if (!isValid) {
         return res.status(400).json({ message: "Invalid credentials" });
       }
@@ -116,6 +131,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Pet routes
+  app.get("/api/pets/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const pet = await storage.getPet(req.params.id);
+      if (!pet) return res.status(404).json({ message: "Pet not found" });
+      res.json(pet);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
   app.get("/api/pets", authenticateToken, async (req: any, res) => {
     try {
       const pets = await storage.getPetsByOwner(req.user.userId);
@@ -194,7 +218,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/appointments", authenticateToken, async (req: any, res) => {
     try {
-      const data = insertAppointmentSchema.parse({ ...req.body, ownerId: req.user.userId });
+      const data = insertAppointmentServerSchema.parse({
+        ...req.body,
+        ownerId: req.user.userId,
+      });
       const appointment = await storage.createAppointment(data);
       res.json(appointment);
     } catch (error: any) {
@@ -212,6 +239,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Medical records routes
+  app.get("/api/medical-records/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const record = await storage.getMedicalRecord(req.params.id);
+      if (!record) return res.status(404).json({ message: "Record not found" });
+      res.json(record);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
   app.get("/api/pets/:petId/medical-records", authenticateToken, async (req: any, res) => {
     try {
       const records = await storage.getMedicalRecordsByPet(req.params.petId);
@@ -223,7 +259,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/medical-records", authenticateToken, async (req: any, res) => {
     try {
-      const data = insertMedicalRecordSchema.parse(req.body);
+      const data = insertMedicalRecordServerSchema.parse(req.body);
       const record = await storage.createMedicalRecord(data);
       res.json(record);
     } catch (error: any) {
@@ -232,6 +268,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Vaccination routes
+  app.get("/api/vaccinations/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const vaccination = await storage.getVaccination(req.params.id);
+      if (!vaccination) return res.status(404).json({ message: "Vaccination not found" });
+      res.json(vaccination);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
+  // Admin/user list route for clinic views (demo only)
+  app.get("/api/users", authenticateToken, async (_req: any, res) => {
+    try {
+      // Expose limited user info for clinic filtering in demo
+      const owner = await storage.getUserByEmail("owner.demo@example.com");
+      const clinicUser = await storage.getUserByEmail("clinic.demo@example.com");
+      const users = [owner, clinicUser].filter(Boolean).map((u: any) => ({
+        id: u.id,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        userType: u.userType,
+      }));
+      res.json(users);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
   app.get("/api/pets/:petId/vaccinations", authenticateToken, async (req: any, res) => {
     try {
       const vaccinations = await storage.getVaccinationsByPet(req.params.petId);
@@ -243,7 +306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/vaccinations", authenticateToken, async (req: any, res) => {
     try {
-      const data = insertVaccinationSchema.parse(req.body);
+      const data = insertVaccinationServerSchema.parse(req.body);
       const vaccination = await storage.createVaccination(data);
       res.json(vaccination);
     } catch (error: any) {
