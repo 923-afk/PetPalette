@@ -222,6 +222,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/pets/:id", authenticateToken, async (req: any, res) => {
+    try {
+      const pet = await storage.getPet(req.params.id);
+      if (!pet) return res.status(404).json({ message: "Pet not found" });
+      if (pet.ownerId !== req.user.userId && req.user.userType !== 'clinic') {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      res.json(pet);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
+    }
+  });
+
   app.post("/api/pets", authenticateToken, async (req: any, res) => {
     try {
       const data = insertPetSchema.parse({ ...req.body, ownerId: req.user.userId });
