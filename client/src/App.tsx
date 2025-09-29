@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -16,9 +16,12 @@ import ClinicAppointments from "@/pages/clinic/appointments";
 import ClinicPatients from "@/pages/clinic/patients";
 import Navigation from "@/components/navigation";
 import NotFound from "@/pages/not-found";
+import Chatbot from "@/components/ui/chatbot";
 
 function Router() {
   const { isAuthenticated, user } = useAuth();
+  const [location] = useLocation();
+  const isAuthPage = location === '/login' || location === '/register';
 
   return (
     <div className="min-h-screen bg-background">
@@ -49,6 +52,10 @@ function Router() {
 
         <Route component={NotFound} />
       </Switch>
+      {/* Show chatbot only when authenticated and not on auth pages */}
+      {isAuthenticated && !isAuthPage && (
+        <Chatbot />
+      )}
     </div>
   );
 }

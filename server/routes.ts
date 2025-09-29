@@ -251,6 +251,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Chatbot route
+  app.post("/api/chat", authenticateToken, async (req: any, res) => {
+    try {
+      const message: unknown = req.body?.message;
+      if (typeof message !== "string" || message.trim().length === 0) {
+        return res.status(400).json({ message: "Message is required" });
+      }
+
+      const lower = message.toLowerCase();
+      const userType: "owner" | "clinic" = req.user?.userType === "clinic" ? "clinic" : "owner";
+
+      let reply = "I can help with appointments, records, vaccinations, and clinic info. Ask me anything!";
+
+      // Simple rule-based intents
+      const isBooking = /book|schedule|appointment/.test(lower);
+      const isHours = /hour|open|close|time/.test(lower);
+      const isRecords = /record|history|medical|vaccin/.test(lower);
+      const isPatients = /patient|owner|pet list/.test(lower);
+      const isInventory = /inventory|stock|vaccine stock|supply/.test(lower);
+      const isAnalytics = /report|analytics|stats|trend/.test(lower);
+
+      if (userType === "owner") {
+        if (isBooking) {
+          reply = "To book, go to Booking and pick a clinic/time. I can prefill your pet info.";
+        } else if (isRecords) {
+          reply = "Your pet records and vaccinations are under Pets > Pet Profile.";
+        } else if (isHours) {
+          reply = "Clinic hours vary; check the clinic page or your upcoming appointment details.";
+        }
+      } else {
+        if (isBooking) {
+          reply = "Use Appointments to manage today's schedule and create new bookings.";
+        } else if (isPatients) {
+          reply = "Patient lists and details are in Patients. You can search by owner or pet.";
+        } else if (isInventory) {
+          reply = "Track vaccine and supply stock in your inventory module (coming soon).";
+        } else if (isAnalytics) {
+          reply = "Analytics dashboards summarize visits, vaccinations, and revenue trends (coming soon).";
+        }
+      }
+
+      return res.json({ reply, userType });
+    } catch (error: any) {
+      return res.status(500).json({ message: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
