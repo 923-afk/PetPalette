@@ -1,145 +1,142 @@
-import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MessageCircle, X, Send, Sparkles } from "lucide-react";
+import { MessageSquare, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { useAuth } from "@/hooks/use-auth";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { authManager } from "@/lib/auth";
 
 type ChatMessage = {
   id: string;
   role: "user" | "assistant";
-  text: string;
+  content: string;
+  timestamp: number;
 };
 
 export function Chatbot() {
-  const { isAuthenticated, user } = useAuth();
-  const [open, setOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     return [
       {
-        id: "welcome",
+        id: crypto.randomUUID(),
         role: "assistant",
-        text:
-          "Hi! I'm your PetCare assistant. Ask me about appointments, vaccines, clinic hours, medical records, and more.",
+        content:
+          "Hi! I’m your PetCare assistant. Ask me about bookings, pet records, or clinic info.",
+        timestamp: Date.now(),
       },
     ];
   });
 
-  const endRef = useRef<HTMLDivElement | null>(null);
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, open]);
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages.length, isOpen]);
 
-  const placeholder = useMemo(() => {
-    if (user?.userType === "clinic") return "Ask about schedule, patients, or analytics";
-    return "Ask about booking, vaccines, or pet care";
-  }, [user?.userType]);
+  const headers = useMemo(() => {
+    const base: HeadersInit = { "Content-Type": "application/json" };
+    const auth = authManager.getAuthHeader();
+    return { ...base, ...auth } as HeadersInit;
+  }, []);
 
   async function sendMessage() {
-    const trimmed = input.trim();
-    if (!trimmed || loading) return;
-    const userMsg: ChatMessage = { id: crypto.randomUUID(), role: "user", text: trimmed };
-    setMessages((prev: ChatMessage[]) => [...prev, userMsg]);
+    const text = input.trim();
+    if (!text) return;
     setInput("");
-    setLoading(true);
+
+    const userMessage: ChatMessage = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content: text,
+      timestamp: Date.now(),
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setIsSending(true);
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...authManager.getAuthHeader(),
-        },
-        body: JSON.stringify({ message: trimmed }),
+        headers,
+        body: JSON.stringify({ message: text }),
       });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ message: "Failed to send" }));
-        throw new Error(err.message || "Failed to send");
-      }
-      const data = (await res.json()) as { reply: string };
-      const botMsg: ChatMessage = {
+      const data = await res.json();
+      const replyText = data?.reply ?? "Sorry, I didn’t catch that.";
+      const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
-        text: data.reply,
+        content: replyText,
+        timestamp: Date.now(),
       };
-      setMessages((prev: ChatMessage[]) => [...prev, botMsg]);
-    } catch (e: any) {
-      const botMsg: ChatMessage = {
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (err: any) {
+      const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
-        text: e?.message || "Sorry, something went wrong.",
+        content: "There was an error contacting the assistant. Please try again.",
+        timestamp: Date.now(),
       };
-      setMessages((prev: ChatMessage[]) => [...prev, botMsg]);
+      setMessages((prev) => [...prev, assistantMessage]);
     } finally {
-      setLoading(false);
+      setIsSending(false);
     }
   }
 
-  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+  function onKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      void sendMessage();
     }
   }
 
-  if (!isAuthenticated) return null;
-
   return (
-    <div className="fixed bottom-4 right-4 z-50">
-      {!open ? (
-        <Button onClick={() => setOpen(true)} className="rounded-full h-12 w-12 p-0 shadow-lg" aria-label="Open chatbot">
-          <Sparkles className="h-5 w-5" />
-        </Button>
-      ) : (
-        <Card className="w-[360px] max-h-[520px] flex flex-col shadow-2xl">
-          <CardHeader className="py-3 px-4 border-b">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
-                <MessageCircle className="h-5 w-5 text-primary" />
-                PetCare Assistant
-              </CardTitle>
-              <Button variant="ghost" size="icon" onClick={() => setOpen(false)} aria-label="Close chatbot">
+    <>
+      <div className="fixed bottom-6 right-6 z-50">
+        <div className={cn("transition-all", isOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none")}> 
+          <div className="mb-3 w-[320px] h-[440px] rounded-xl border bg-card shadow-xl overflow-hidden">
+            <div className="flex items-center justify-between border-b px-4 py-3 bg-muted/50">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Sparkles className="h-4 w-4 text-primary" />
+                Assistant
+              </div>
+              <button className="p-1 hover:opacity-80" onClick={() => setIsOpen(false)} aria-label="Close chat">
                 <X className="h-4 w-4" />
-              </Button>
+              </button>
             </div>
-          </CardHeader>
-          <CardContent className="p-0 flex-1 flex flex-col">
-            <div className="p-3 space-y-2 overflow-auto" style={{ maxHeight: 380 }}>
-              {messages.map((m: ChatMessage) => (
-                <div key={m.id} className={m.role === "assistant" ? "flex" : "flex justify-end"}>
-                  <div
-                    className={
-                      "rounded-2xl px-3 py-2 max-w-[80%] text-sm " +
-                      (m.role === "assistant"
-                        ? "bg-muted text-foreground"
-                        : "bg-primary text-primary-foreground")
-                    }
-                  >
-                    {m.text}
+            <div ref={scrollRef} className="h-[330px] overflow-y-auto p-4 space-y-3">
+              {messages.map((m) => (
+                <div key={m.id} className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}> 
+                  <div className={cn(
+                    "max-w-[75%] rounded-lg px-3 py-2 text-sm",
+                    m.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground border"
+                  )}>
+                    {m.content}
                   </div>
                 </div>
               ))}
-              <div ref={endRef} />
             </div>
-            <div className="border-t p-2 flex items-center gap-2">
-              <Input
-                placeholder={placeholder}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={onKeyDown}
-                disabled={loading}
-              />
-              <Button onClick={sendMessage} disabled={loading || !input.trim()} size="icon" aria-label="Send message">
-                <Send className="h-4 w-4" />
-              </Button>
+            <div className="border-t p-3">
+              <div className="flex items-end gap-2">
+                <Textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={onKeyDown}
+                  placeholder={isSending ? "Sending…" : "Ask about bookings, records, hours…"}
+                  className="min-h-[44px] max-h-[96px]"
+                  disabled={isSending}
+                />
+                <Button onClick={() => void sendMessage()} disabled={isSending || !input.trim()}>
+                  Send
+                </Button>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+          </div>
+        </div>
+
+        <Button size="icon" className="h-12 w-12 rounded-full shadow-lg" onClick={() => setIsOpen((v) => !v)} aria-label="Open chat">
+          <MessageSquare className="h-5 w-5" />
+        </Button>
+      </div>
+    </>
   );
 }
 
+export default Chatbot;

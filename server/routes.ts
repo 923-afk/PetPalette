@@ -361,18 +361,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Chatbot route
+  // Chatbot route (merged)
   app.post("/api/chat", authenticateToken, async (req: any, res) => {
     try {
-      const { message } = req.body ?? {};
-      if (!message || typeof message !== "string") {
-        return res.status(400).json({ message: "message is required" });
+      const message: unknown = req.body?.message;
+      if (typeof message !== "string" || message.trim().length === 0) {
+        return res.status(400).json({ message: "Message is required" });
       }
-      const userType = req.user?.userType || "owner";
+
+      // Use our richer rule-based reply generator but keep origin/main's stricter typing
+      const userType: "owner" | "clinic" = req.user?.userType === "clinic" ? "clinic" : "owner";
       const reply = generateChatReply(message, userType);
-      res.json({ reply, userType });
+      return res.json({ reply, userType });
     } catch (error: any) {
-      res.status(500).json({ message: error.message });
+      return res.status(500).json({ message: error.message });
     }
   });
 
