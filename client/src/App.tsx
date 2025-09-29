@@ -26,6 +26,8 @@ function Router() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
+      {/* Global Chatbot */}
+      {!isAuthPage && <Chatbot />}
       <Switch>
         <Route path="/" component={Landing} />
         <Route path="/login" component={Login} />
@@ -52,10 +54,6 @@ function Router() {
 
         <Route component={NotFound} />
       </Switch>
-      {/* Show chatbot only when authenticated and not on auth pages */}
-      {isAuthenticated && !isAuthPage && (
-        <Chatbot />
-      )}
     </div>
   );
 }
