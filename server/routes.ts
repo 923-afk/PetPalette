@@ -7,6 +7,103 @@ import jwt from "jsonwebtoken";
 
 const JWT_SECRET = process.env.SESSION_SECRET || "fallback-secret";
 
+function normalizeMessage(text: string) {
+  return (text || "").toLowerCase();
+}
+
+function generateChatReply(message: string, userType: string) {
+  const msg = normalizeMessage(message);
+
+  const sharedAnswers: Array<{ test: (m: string) => boolean; reply: string }> = [
+    {
+      test: (m) => /hello|hi|hey|good (morning|afternoon|evening)/.test(m),
+      reply:
+        "Hello! How can I help you today? You can ask about appointments, vaccinations, clinic hours, or pet care.",
+    },
+    {
+      test: (m) => /hours?|open|close|closing|opening/.test(m),
+      reply:
+        "Typical clinic hours are Mon–Fri 8:00–18:00 and Sat 9:00–15:00. For exact times, check your clinic profile under Clinic Dashboard > Details.",
+    },
+    {
+      test: (m) => /emergency|urgent|er|after[- ]?hours/.test(m),
+      reply:
+        "For emergencies, call your clinic immediately. If it's after hours, go to the nearest 24/7 emergency veterinary hospital.",
+    },
+    {
+      test: (m) => /location|address|where/.test(m),
+      reply:
+        "You can find the clinic address on the Clinic page and in appointment details. Need me to open it?",
+    },
+  ];
+
+  const ownerAnswers: Array<{ test: (m: string) => boolean; reply: string }> = [
+    {
+      test: (m) => /book|schedule|appointment|visit/.test(m),
+      reply:
+        "To book, go to Book > Select pet, service, date and time, then confirm. I can also prefill if you tell me the pet and service.",
+    },
+    {
+      test: (m) => /vaccine|vaccination|shots?/.test(m),
+      reply:
+        "Core vaccines are recommended per species and age. Check your pet profile > Vaccinations for due dates, or book a vaccination visit.",
+    },
+    {
+      test: (m) => /records?|history|medical/.test(m),
+      reply:
+        "Your pet's medical records are under Pets > Pet Profile > Medical Records.",
+    },
+    {
+      test: (m) => /cost|price|fee|how much/.test(m),
+      reply:
+        "Prices vary by service. You can see typical ranges on the booking page after selecting a service.",
+    },
+    {
+      test: (m) => /diet|food|nutrition|feeding/.test(m),
+      reply:
+        "For diet, follow your vet's recommendations. General tip: transition foods gradually over 5–7 days to avoid GI upset.",
+    },
+  ];
+
+  const clinicAnswers: Array<{ test: (m: string) => boolean; reply: string }> = [
+    {
+      test: (m) => /today|schedule|availability|slots?/.test(m),
+      reply:
+        "View and manage today's schedule under Clinic Dashboard. Use Appointments to update status or add new bookings.",
+    },
+    {
+      test: (m) => /patient|pet|owner/.test(m),
+      reply:
+        "Search patients from Clinic Dashboard > Today's Schedule or the Patients page. You can open a pet profile to see records.",
+    },
+    {
+      test: (m) => /inventory|stock|medicine|vaccine/.test(m),
+      reply:
+        "Manage inventory from the quick actions on the Clinic Dashboard. Vaccine schedules are tracked per patient in Medical Records.",
+    },
+    {
+      test: (m) => /analytics|revenue|stats?/.test(m),
+      reply:
+        "Analytics are available on the Clinic Dashboard. You can see appointments, revenue, and satisfaction trends.",
+    },
+  ];
+
+  for (const a of sharedAnswers) {
+    if (a.test(msg)) return a.reply;
+  }
+  if (userType === "owner") {
+    for (const a of ownerAnswers) {
+      if (a.test(msg)) return a.reply;
+    }
+  }
+  if (userType === "clinic") {
+    for (const a of clinicAnswers) {
+      if (a.test(msg)) return a.reply;
+    }
+  }
+  return "I'm here to help with appointments, vaccines, clinic hours, medical records, and more. Could you rephrase or add details?";
+}
+
 // Middleware to verify JWT token
 function authenticateToken(req: any, res: any, next: any) {
   const authHeader = req.headers['authorization'];
@@ -248,6 +345,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(vaccination);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Chatbot route
+  app.post("/api/chat", authenticateToken, async (req: any, res) => {
+    try {
+      const { message } = req.body ?? {};
+      if (!message || typeof message !== "string") {
+        return res.status(400).json({ message: "message is required" });
+      }
+      const userType = req.user?.userType || "owner";
+      const reply = generateChatReply(message, userType);
+      res.json({ reply, userType });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 

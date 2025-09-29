@@ -16,6 +16,7 @@ import ClinicAppointments from "@/pages/clinic/appointments";
 import ClinicPatients from "@/pages/clinic/patients";
 import Navigation from "@/components/navigation";
 import NotFound from "@/pages/not-found";
+import { Chatbot } from "@/components/ui/chatbot";
 
 function Router() {
   const { isAuthenticated, user } = useAuth();
@@ -23,6 +24,8 @@ function Router() {
   return (
     <div className="min-h-screen bg-background">
       <Navigation />
+      {/* Global Chatbot - hidden on auth pages via Navigation early return and auth gating inside component */}
+      <Chatbot />
       <Switch>
         <Route path="/" component={Landing} />
         <Route path="/login" component={Login} />
