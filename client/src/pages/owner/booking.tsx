@@ -48,10 +48,7 @@ export default function OwnerBooking() {
   const { data: pets = [], isLoading: petsLoading } = useQuery({
     queryKey: ['/api/pets'],
     queryFn: async () => {
-      const response = await fetch('/api/pets', {
-        headers: authManager.getAuthHeader(),
-      });
-      if (!response.ok) throw new Error('Failed to fetch pets');
+      const response = await apiRequest("GET", "/api/pets");
       return response.json();
     },
   });

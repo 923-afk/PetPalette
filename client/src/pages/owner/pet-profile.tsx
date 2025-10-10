@@ -61,10 +61,7 @@ export default function PetProfile() {
   const { data: pet, isLoading: petLoading } = useQuery({
     queryKey: ['/api/pets', id],
     queryFn: async () => {
-      const response = await fetch(`/api/pets/${id}`, {
-        headers: authManager.getAuthHeader(),
-      });
-      if (!response.ok) throw new Error('Failed to fetch pet');
+      const response = await apiRequest("GET", `/api/pets/${id}`);
       return response.json();
     },
     enabled: !!id,
@@ -73,10 +70,7 @@ export default function PetProfile() {
   const { data: medicalRecords = [], isLoading: recordsLoading } = useQuery({
     queryKey: ['/api/pets', id, 'medical-records'],
     queryFn: async () => {
-      const response = await fetch(`/api/pets/${id}/medical-records`, {
-        headers: authManager.getAuthHeader(),
-      });
-      if (!response.ok) throw new Error('Failed to fetch medical records');
+      const response = await apiRequest("GET", `/api/pets/${id}/medical-records`);
       return response.json();
     },
     enabled: !!id,
@@ -85,10 +79,7 @@ export default function PetProfile() {
   const { data: vaccinations = [], isLoading: vaccinationsLoading } = useQuery({
     queryKey: ['/api/pets', id, 'vaccinations'],
     queryFn: async () => {
-      const response = await fetch(`/api/pets/${id}/vaccinations`, {
-        headers: authManager.getAuthHeader(),
-      });
-      if (!response.ok) throw new Error('Failed to fetch vaccinations');
+      const response = await apiRequest("GET", `/api/pets/${id}/vaccinations`);
       return response.json();
     },
     enabled: !!id,

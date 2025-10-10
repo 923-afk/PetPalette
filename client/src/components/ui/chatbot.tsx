@@ -58,8 +58,13 @@ export function Chatbot() {
         headers,
         body: JSON.stringify({ message: text }),
       });
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
       const data = await res.json();
-      const replyText = data?.reply ?? "Sorry, I didn’t catch that.";
+      const replyText = data?.reply ?? "Sorry, I didn't catch that.";
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
@@ -68,10 +73,11 @@ export function Chatbot() {
       };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err: any) {
+      console.error("Chat error:", err);
       const assistantMessage: ChatMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
-        content: "There was an error contacting the assistant. Please try again.",
+        content: "I'm having trouble connecting right now. Please make sure you're logged in and try again.",
         timestamp: Date.now(),
       };
       setMessages((prev) => [...prev, assistantMessage]);

@@ -46,10 +46,7 @@ export default function OwnerPets() {
   const { data: pets = [], isLoading } = useQuery({
     queryKey: ['/api/pets'],
     queryFn: async () => {
-      const response = await fetch('/api/pets', {
-        headers: authManager.getAuthHeader(),
-      });
-      if (!response.ok) throw new Error('Failed to fetch pets');
+      const response = await apiRequest("GET", "/api/pets");
       return response.json();
     },
   });

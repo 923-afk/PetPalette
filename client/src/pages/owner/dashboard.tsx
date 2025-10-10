@@ -21,10 +21,7 @@ export default function OwnerDashboard() {
   const { data: pets = [], isLoading: petsLoading } = useQuery({
     queryKey: ['/api/pets'],
     queryFn: async () => {
-      const response = await fetch('/api/pets', {
-        headers: authManager.getAuthHeader(),
-      });
-      if (!response.ok) throw new Error('Failed to fetch pets');
+      const response = await apiRequest("GET", "/api/pets");
       return response.json();
     },
   });
@@ -32,10 +29,7 @@ export default function OwnerDashboard() {
   const { data: appointments = [], isLoading: appointmentsLoading } = useQuery({
     queryKey: ['/api/appointments'],
     queryFn: async () => {
-      const response = await fetch('/api/appointments', {
-        headers: authManager.getAuthHeader(),
-      });
-      if (!response.ok) throw new Error('Failed to fetch appointments');
+      const response = await apiRequest("GET", "/api/appointments");
       return response.json();
     },
   });
