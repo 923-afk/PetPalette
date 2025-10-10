@@ -182,7 +182,7 @@ export default function ClinicPatients() {
     return matchesSearch && matchesSpecies;
   });
 
-  const speciesOptions = [...new Set(pets.map((pet: Pet) => pet.species))];
+  const speciesOptions = Array.from(new Set(pets.map((pet: Pet) => pet.species))) as string[];
 
   const getAge = (birthDate: Date | string | null) => {
     if (!birthDate) return "Unknown age";

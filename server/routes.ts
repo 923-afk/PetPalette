@@ -175,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Appointment routes
   app.get("/api/appointments", authenticateToken, async (req: any, res) => {
     try {
-      let appointments;
+      let appointments: any[];
       if (req.user.userType === 'owner') {
         appointments = await storage.getAppointmentsByOwner(req.user.userId);
       } else {

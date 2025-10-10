@@ -88,7 +88,7 @@ export default function ClinicDashboard() {
     apt.serviceType.toLowerCase().includes('emergency') || apt.reason?.toLowerCase().includes('urgent')
   );
 
-  const todayRevenue = completedToday.reduce((sum, apt) => 
+  const todayRevenue = completedToday.reduce((sum: number, apt: any) => 
     sum + (apt.cost ? parseFloat(apt.cost.toString()) : 0), 0
   );
 

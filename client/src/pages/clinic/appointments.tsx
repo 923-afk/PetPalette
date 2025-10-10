@@ -107,7 +107,7 @@ export default function ClinicAppointments() {
     return aptDate < today || apt.status === 'completed';
   });
 
-  const serviceTypes = [...new Set(appointments.map((apt: Appointment) => apt.serviceType))];
+  const serviceTypes = Array.from(new Set(appointments.map((apt: Appointment) => apt.serviceType))) as string[];
 
   if (appointmentsLoading) {
     return (

@@ -421,7 +421,7 @@ export default function PetProfile() {
                         <div>
                           <div className="font-semibold">{record.title}</div>
                           <div className="text-sm text-muted-foreground">
-                            {new Date(record.recordDate).toLocaleDateString()} • {record.recordType}
+                            {record.recordDate ? new Date(record.recordDate).toLocaleDateString() : 'No date'} • {record.recordType}
                           </div>
                         </div>
                       </div>

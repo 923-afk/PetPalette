@@ -156,7 +156,13 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id, createdAt: new Date() };
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      createdAt: new Date(),
+      address: insertUser.address ?? null,
+      phone: insertUser.phone ?? null
+    };
     this.users.set(id, user);
     return user;
   }
@@ -184,7 +190,14 @@ export class MemStorage implements IStorage {
 
   async createClinic(insertClinic: InsertClinic): Promise<Clinic> {
     const id = randomUUID();
-    const clinic: Clinic = { ...insertClinic, id, createdAt: new Date() };
+    const clinic: Clinic = { 
+      ...insertClinic, 
+      id, 
+      createdAt: new Date(),
+      description: insertClinic.description ?? null,
+      hours: insertClinic.hours ?? null,
+      services: insertClinic.services ?? null
+    };
     this.clinics.set(id, clinic);
     return clinic;
   }
@@ -208,7 +221,19 @@ export class MemStorage implements IStorage {
 
   async createPet(insertPet: InsertPet): Promise<Pet> {
     const id = randomUUID();
-    const pet: Pet = { ...insertPet, id, createdAt: new Date() };
+    const pet: Pet = { 
+      ...insertPet, 
+      id, 
+      createdAt: new Date(),
+      breed: insertPet.breed ?? null,
+      gender: insertPet.gender ?? null,
+      birthDate: insertPet.birthDate ?? null,
+      weight: insertPet.weight ?? null,
+      color: insertPet.color ?? null,
+      microchipId: insertPet.microchipId ?? null,
+      photoUrl: insertPet.photoUrl ?? null,
+      medicalNotes: insertPet.medicalNotes ?? null
+    };
     this.pets.set(id, pet);
     return pet;
   }
@@ -248,7 +273,18 @@ export class MemStorage implements IStorage {
 
   async createAppointment(insertAppointment: InsertAppointment): Promise<Appointment> {
     const id = randomUUID();
-    const appointment: Appointment = { ...insertAppointment, id, createdAt: new Date() };
+    const appointment: Appointment = { 
+      ...insertAppointment, 
+      id, 
+      createdAt: new Date(),
+      doctorName: insertAppointment.doctorName ?? null,
+      duration: insertAppointment.duration ?? null,
+      reason: insertAppointment.reason ?? null,
+      notes: insertAppointment.notes ?? null,
+      diagnosis: insertAppointment.diagnosis ?? null,
+      treatment: insertAppointment.treatment ?? null,
+      cost: insertAppointment.cost ?? null
+    };
     this.appointments.set(id, appointment);
     return appointment;
   }
@@ -273,12 +309,30 @@ export class MemStorage implements IStorage {
   async getMedicalRecordsByPet(petId: string): Promise<MedicalRecord[]> {
     return Array.from(this.medicalRecords.values())
       .filter(record => record.petId === petId)
-      .sort((a, b) => new Date(b.recordDate).getTime() - new Date(a.recordDate).getTime());
+      .sort((a, b) => {
+        const dateA = a.recordDate ? new Date(a.recordDate).getTime() : 0;
+        const dateB = b.recordDate ? new Date(b.recordDate).getTime() : 0;
+        return dateB - dateA;
+      });
   }
 
   async createMedicalRecord(insertRecord: InsertMedicalRecord): Promise<MedicalRecord> {
     const id = randomUUID();
-    const record: MedicalRecord = { ...insertRecord, id, createdAt: new Date() };
+    const record: MedicalRecord = { 
+      ...insertRecord, 
+      id, 
+      createdAt: new Date(),
+      description: insertRecord.description ?? null,
+      diagnosis: insertRecord.diagnosis ?? null,
+      treatment: insertRecord.treatment ?? null,
+      medications: insertRecord.medications ?? null,
+      weight: insertRecord.weight ?? null,
+      temperature: insertRecord.temperature ?? null,
+      notes: insertRecord.notes ?? null,
+      documentUrls: insertRecord.documentUrls ?? null,
+      recordDate: insertRecord.recordDate ?? new Date(),
+      appointmentId: insertRecord.appointmentId ?? null
+    };
     this.medicalRecords.set(id, record);
     return record;
   }
@@ -304,7 +358,16 @@ export class MemStorage implements IStorage {
 
   async createVaccination(insertVaccination: InsertVaccination): Promise<Vaccination> {
     const id = randomUUID();
-    const vaccination: Vaccination = { ...insertVaccination, id, createdAt: new Date() };
+    const vaccination: Vaccination = { 
+      ...insertVaccination, 
+      id, 
+      createdAt: new Date(),
+      manufacturer: insertVaccination.manufacturer ?? null,
+      lotNumber: insertVaccination.lotNumber ?? null,
+      nextDueDate: insertVaccination.nextDueDate ?? null,
+      veterinarian: insertVaccination.veterinarian ?? null,
+      notes: insertVaccination.notes ?? null
+    };
     this.vaccinations.set(id, vaccination);
     return vaccination;
   }
