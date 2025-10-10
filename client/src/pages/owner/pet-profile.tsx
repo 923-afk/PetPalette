@@ -329,6 +329,21 @@ export default function PetProfile() {
                   <DialogTitle>Add Medical Record</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={recordForm.handleSubmit((data) => addMedicalRecordMutation.mutate(data))} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="clinicId">Clinic *</Label>
+                    <select
+                      id="clinicId"
+                      className="w-full p-2 border rounded-md"
+                      {...recordForm.register("clinicId")}
+                      data-testid="select-record-clinic"
+                      required
+                    >
+                      <option value="" disabled>Select clinic</option>
+                      {clinics.map((c: any) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="title">Title *</Label>

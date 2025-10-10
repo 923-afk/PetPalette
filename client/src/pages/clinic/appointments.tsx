@@ -37,7 +37,7 @@ export default function ClinicAppointments() {
   const { data: pets = [] } = useQuery({
     queryKey: ['/api/pets'],
     queryFn: async () => {
-      const response = await fetch('/api/pets');
+      const response = await fetch('/api/pets', { headers: authManager.getAuthHeader() });
       if (!response.ok) throw new Error('Failed to fetch pets');
       return response.json();
     },
@@ -46,7 +46,7 @@ export default function ClinicAppointments() {
   const { data: users = [] } = useQuery({
     queryKey: ['/api/users'],
     queryFn: async () => {
-      const response = await fetch('/api/users');
+      const response = await fetch('/api/users', { headers: authManager.getAuthHeader() });
       if (!response.ok) return [];
       return response.json();
     },
