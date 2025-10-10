@@ -6,7 +6,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.SESSION_SECRET || "fallback-secret";
+const JWT_SECRET = process.env.SESSION_SECRET || process.env.JWT_SECRET || "fallback-secret-for-demo";
 
 function normalizeMessage(text: string) {
   return (text || "").toLowerCase();
@@ -172,21 +172,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const data = loginSchema.parse(req.body);
       
-      // Check demo accounts
+      // Check demo accounts - ensure they always exist
       if (data.email === "owner.demo@example.com" && data.password === "demo1234") {
-        const user = await storage.getUserByEmail(data.email);
-        if (user) {
-          const token = jwt.sign({ userId: user.id, userType: user.userType }, JWT_SECRET);
-          return res.json({ token, user: { ...user, password: undefined } });
+        let user = await storage.getUserByEmail(data.email);
+        if (!user) {
+          // Create demo owner if it doesn't exist
+          user = await storage.createUser({
+            email: "owner.demo@example.com",
+            password: "$2b$10$demo.password.hash",
+            firstName: "Sarah",
+            lastName: "Johnson",
+            userType: "owner",
+            phone: "+1-555-0123",
+            address: "123 Pet Street, Pet City, PC 12345"
+          });
         }
+        const token = jwt.sign({ userId: user.id, userType: user.userType }, JWT_SECRET);
+        return res.json({ token, user: { ...user, password: undefined } });
       }
       
       if (data.email === "clinic.demo@example.com" && data.password === "demo1234") {
-        const user = await storage.getUserByEmail(data.email);
-        if (user) {
-          const token = jwt.sign({ userId: user.id, userType: user.userType }, JWT_SECRET);
-          return res.json({ token, user: { ...user, password: undefined } });
+        let user = await storage.getUserByEmail(data.email);
+        if (!user) {
+          // Create demo clinic user if it doesn't exist
+          user = await storage.createUser({
+            email: "clinic.demo@example.com",
+            password: "$2b$10$demo.password.hash",
+            firstName: "Dr. Michael",
+            lastName: "Smith",
+            userType: "clinic",
+            phone: "+1-555-0456",
+            address: "456 Vet Avenue, Animal Town, AT 67890"
+          });
         }
+        const token = jwt.sign({ userId: user.id, userType: user.userType }, JWT_SECRET);
+        return res.json({ token, user: { ...user, password: undefined } });
       }
       
       // Find user
@@ -421,6 +441,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(vaccination);
     } catch (error: any) {
       res.status(400).json({ message: error.message });
+    }
+  });
+
+  // Health check route
+  app.get("/api/health", async (req, res) => {
+    res.json({ 
+      status: "ok", 
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || "development"
+    });
+  });
+
+  // Demo data initialization route
+  app.post("/api/demo/init", async (req, res) => {
+    try {
+      // Ensure demo users exist
+      const demoOwner = await storage.getUserByEmail("owner.demo@example.com");
+      if (!demoOwner) {
+        await storage.createUser({
+          email: "owner.demo@example.com",
+          password: "$2b$10$demo.password.hash",
+          firstName: "Sarah",
+          lastName: "Johnson",
+          userType: "owner",
+          phone: "+1-555-0123",
+          address: "123 Pet Street, Pet City, PC 12345"
+        });
+      }
+
+      const demoClinicUser = await storage.getUserByEmail("clinic.demo@example.com");
+      if (!demoClinicUser) {
+        await storage.createUser({
+          email: "clinic.demo@example.com",
+          password: "$2b$10$demo.password.hash",
+          firstName: "Dr. Michael",
+          lastName: "Smith",
+          userType: "clinic",
+          phone: "+1-555-0456",
+          address: "456 Vet Avenue, Animal Town, AT 67890"
+        });
+      }
+
+      // Ensure demo clinic exists
+      const existingClinic = await storage.getClinicByUserId(demoClinicUser?.id || "clinic-user-1");
+      if (!existingClinic) {
+        await storage.createClinic({
+          userId: demoClinicUser?.id || "clinic-user-1",
+          name: "Happy Paws Veterinary Clinic",
+          address: "456 Vet Avenue, Animal Town, AT 67890",
+          phone: "+1-555-0456",
+          email: "info@happypawsclinic.com",
+          services: ["General Checkup", "Vaccination", "Dental Care", "Surgery", "Emergency"],
+          hours: "Mon-Fri 8:00-18:00, Sat 9:00-15:00"
+        });
+      }
+
+      // Ensure demo pet exists for owner
+      const existingPets = await storage.getPetsByOwner(demoOwner?.id || "owner-1");
+      if (existingPets.length === 0) {
+        await storage.createPet({
+          ownerId: demoOwner?.id || "owner-1",
+          name: "Max",
+          species: "dog",
+          breed: "Golden Retriever",
+          gender: "male",
+          birthDate: new Date("2021-03-15"),
+          weight: "32.5",
+          color: "Golden",
+          microchipId: "123456789012345",
+          medicalNotes: "Friendly and healthy dog. Regular checkups recommended."
+        });
+      }
+
+      res.json({ message: "Demo data initialized successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message });
     }
   });
 

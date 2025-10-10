@@ -54,9 +54,17 @@ export default function Login() {
     loginMutation.mutate(data);
   };
 
-  const handleDemoLogin = (email: string, password: string) => {
+  const handleDemoLogin = async (email: string, password: string) => {
     form.setValue("email", email);
     form.setValue("password", password);
+    
+    // Ensure demo data is initialized before login
+    try {
+      await fetch('/api/demo/init', { method: 'POST' });
+    } catch (error) {
+      console.log('Demo data initialization failed:', error);
+    }
+    
     loginMutation.mutate({ email, password });
   };
 
